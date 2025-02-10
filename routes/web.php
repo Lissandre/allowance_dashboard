@@ -9,8 +9,10 @@ Route::get('/', function () {
 });
 
 Route::controller(WalletController::class)->group(function () {
-    Route::get('/login', 'showLogin')->name('login');
-    Route::post('/login', 'connect')->name('wallet.connect');
+    Route::middleware('guest')->group(function () {
+        Route::get('/login', 'showLogin')->name('login');
+        Route::post('/login', 'connect')->name('wallet.connect');
+    });
     Route::post('/disconnect', 'disconnect')->name('wallet.disconnect');
 });
 

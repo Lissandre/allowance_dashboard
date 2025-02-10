@@ -13,7 +13,7 @@ const EtherscanLink = ({
         network === "mainnet" ? "" : `${network}.`
     }etherscan.io/address/${address}`;
     return (
-        <a href={href} target="_blank" rel="noreferrer">
+        <a href={href} target="_blank" rel="noreferrer" role="link">
             {children || address}
         </a>
     );
