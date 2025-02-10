@@ -11,6 +11,8 @@ import MainLayout from "@/Layouts/MainLayout";
 import Loader from "@/Components/Loader";
 import Input from "@/Components/Inputs";
 import { toast } from "sonner";
+import { waitForTransactionReceipt } from "wagmi/actions";
+import { config } from "@/Lib/wagmi";
 
 const AllowanceForm = () => {
     const { address } = useAccount();
@@ -50,11 +52,11 @@ const AllowanceForm = () => {
             const id = toast.loading("Waiting for wallet approval...");
             await writeContract(
                 {
-                    address: formData.contract_address as `0x${string}`,
+                    address: formData.contract_address,
                     abi: erc20Abi,
                     functionName: "approve",
                     args: [
-                        formData.spender_address as `0x${string}`,
+                        formData.spender_address,
                         parseUnits(formData.allowance_amount, 18),
                     ],
                 },
@@ -65,11 +67,33 @@ const AllowanceForm = () => {
                             id: id,
                         });
                     },
-                    onSuccess: () => {
-                        toast.success("Allowance successfully approved", {
-                            id,
-                        });
-                        router.post("/allowances", formData);
+                    onSuccess: async (txHash) => {
+                        toast.loading(
+                            "Waiting for transaction confirmation...",
+                            { id }
+                        );
+
+                        try {
+                            const receipt = await waitForTransactionReceipt(
+                                config,
+                                {
+                                    hash: txHash,
+                                }
+                            );
+
+                            if (receipt.status === "success") {
+                                toast.success(
+                                    "Allowance successfully approved",
+                                    { id }
+                                );
+                                await router.post("/allowances", formData);
+                            } else {
+                                throw new Error("Transaction failed");
+                            }
+                        } catch (error) {
+                            setError("Transaction failed");
+                            toast.error("Transaction failed", { id });
+                        }
                     },
                 }
             );

@@ -15,19 +15,19 @@ const OverviewAllowances = () => {
         columnHelper.accessor("contract_address", {
             header: "Contract",
             cell: (cell) => {
-                return <AddressDisplay address={cell.getValue()} />;
+                return <AddressDisplay address={cell.getValue()} withLink />;
             },
         }),
         columnHelper.accessor("owner_address", {
             header: "Owner",
             cell: (cell) => {
-                return <AddressDisplay address={cell.getValue()} />;
+                return <AddressDisplay address={cell.getValue()} withLink />;
             },
         }),
         columnHelper.accessor("spender_address", {
             header: "Spender",
             cell: (cell) => {
-                return <AddressDisplay address={cell.getValue()} />;
+                return <AddressDisplay address={cell.getValue()} withLink />;
             },
         }),
         columnHelper.accessor("allowance_amount", {

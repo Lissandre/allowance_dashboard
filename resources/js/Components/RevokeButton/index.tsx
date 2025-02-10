@@ -1,7 +1,9 @@
+import { config } from "@/Lib/wagmi";
 import { router } from "@inertiajs/react";
 import { toast } from "sonner";
 import { erc20Abi } from "viem";
 import { useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { waitForTransactionReceipt } from "wagmi/actions";
 
 type RevokedButtonProps = {
     allowance: {
@@ -33,11 +35,30 @@ const RevokedButton = ({ allowance }: RevokedButtonProps) => {
                         id,
                     });
                 },
-                onSuccess: () => {
-                    toast.success("Allowance successfully revoked", {
+                onSuccess: async (txHash) => {
+                    toast.loading("Waiting for transaction confirmation...", {
                         id,
                     });
-                    router.delete(`/allowances/${allowance_id}`);
+
+                    try {
+                        const receipt = await waitForTransactionReceipt(
+                            config,
+                            {
+                                hash: txHash,
+                            }
+                        );
+
+                        if (receipt.status === "success") {
+                            toast.success("Allowance successfully revoked", {
+                                id,
+                            });
+                            router.delete(`/allowances/${allowance_id}`);
+                        } else {
+                            throw new Error("Transaction failed");
+                        }
+                    } catch (error) {
+                        toast.error("Transaction failed", { id });
+                    }
                 },
             }
         );

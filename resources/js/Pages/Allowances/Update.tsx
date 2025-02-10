@@ -4,13 +4,14 @@ import {
     useWriteContract,
     useWaitForTransactionReceipt,
 } from "wagmi";
-import { isAddress, parseUnits } from "viem";
+import { isAddress, parseUnits, erc20Abi } from "viem";
 import { router } from "@inertiajs/react";
-import { erc20Abi } from "viem";
 import MainLayout from "@/Layouts/MainLayout";
 import Loader from "@/Components/Loader";
 import Input from "@/Components/Inputs";
 import { toast } from "sonner";
+import { waitForTransactionReceipt } from "wagmi/actions";
+import { config } from "@/Lib/wagmi";
 
 interface AllowanceUpdateProps {
     allowance: {
@@ -70,11 +71,11 @@ const AllowanceUpdate = ({ allowance }: AllowanceUpdateProps) => {
             const id = toast.loading("Waiting for wallet approval...");
             await writeContract(
                 {
-                    address: formData.contract_address as `0x${string}`,
+                    address: formData.contract_address,
                     abi: erc20Abi,
                     functionName: "approve",
                     args: [
-                        formData.spender_address as `0x${string}`,
+                        formData.spender_address,
                         parseUnits(formData.allowance_amount, 18),
                     ],
                 },
@@ -85,11 +86,36 @@ const AllowanceUpdate = ({ allowance }: AllowanceUpdateProps) => {
                         });
                         setError(error.message);
                     },
-                    onSuccess: () => {
-                        toast.success("Allowance successfully approved", {
-                            id,
-                        });
-                        router.patch(`/allowances/${allowance.id}`, formData);
+                    onSuccess: async (txHash) => {
+                        toast.loading(
+                            "Waiting for transaction confirmation...",
+                            { id }
+                        );
+
+                        try {
+                            const receipt = await waitForTransactionReceipt(
+                                config,
+                                {
+                                    hash: txHash,
+                                }
+                            );
+
+                            if (receipt.status === "success") {
+                                toast.success(
+                                    "Allowance successfully approved",
+                                    { id }
+                                );
+                                router.patch(
+                                    `/allowances/${allowance.id}`,
+                                    formData
+                                );
+                            } else {
+                                throw new Error("Transaction failed");
+                            }
+                        } catch (error) {
+                            setError("Transaction failed");
+                            toast.error("Transaction failed", { id });
+                        }
                     },
                 }
             );
